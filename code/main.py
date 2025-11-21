@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 """
 PythonPlayground default entrypoint
+Says hello using anagrams...
 """
-
 import random
 
-# annagrams taken from:
-# https://wordsmith.org/anagram/anagram.cgi?anagram=hello+world&language=english&t=1000&d=&include=&exclude=&n=&m=&source=adv&a=n&l=n&q=n&k=1
-
-Annagrams = (
+Anagrams = (
     "Howled roll", 
     "Doll howler", 
     "Oh, lewd roll...",
@@ -25,8 +22,8 @@ Annagrams = (
 
 
 def hello_world_random_annagram() -> str:
-    """Returns one of the predefined 'hello world' annagrams"""
-    return random.choice(Annagrams)
+    """Returns one of the predefined 'hello world' anagrams"""
+    return random.choice(Anagrams)
 
 
 def main() -> None:
