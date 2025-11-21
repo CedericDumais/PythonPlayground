@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-
+"""
+Code i saw on a @monuinstitute youtube short... quite nice.
+Here are the others: https://www.youtube.com/@monuinstitute/shorts
+"""
 from turtle import *
 
 setposition(-60, 0)
