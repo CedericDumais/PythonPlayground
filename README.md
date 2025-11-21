@@ -15,7 +15,7 @@
 ## Code
 
 ### Utils
-- [Verify existence of a module on the system](utils/check_module.py)
+- [Verify existence of a module on the system](code/utils/check_module.py)
 
 ### Tests
 - [turtle power](code/turtle/turtle_test.py)
