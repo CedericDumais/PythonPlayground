@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# File: {{SCRIPT_DIR}}/{{SCRIPT_NAME}}
+
+set -Eeuo pipefail
+
+# ===== Script: {{SCRIPT_NAME}} =====
+# 
+# This is a template script.
+# 
+# Utility functions and macros sourced via {{SCRIPT_UTILS_COMMON}}.
+# 
+# ----------------------------------------------------------------------------
+
+# -------- Shared utility sourcing -------------------------------------------
+# Locate the project root via '.project-root' or '.git'
+find_project_root() {
+	local dir="$PWD"
+	while [[ "$dir" != "/" ]]; do
+		[[ -f "$dir/.project-root" ]] && { echo "$dir"; return 0; }
+		[[ -d "$dir/.git" ]] && { echo "$dir"; return 0; }
+		dir="$(dirname "$dir")"
+	done
+	echo "Error: .project-root not found." >&2
+	return 1
+}
+PROJECT_ROOT="$(find_project_root)" || exit 1
+
+# Source all shared utilities through the aggregator
+source "$PROJECT_ROOT/{{SCRIPT_UTILS_COMMON}}"
+# ----------------------------------------------------------------------------
+
+# -------- Script logic starts here ------------------------------------------
+log_info "Project root detected: ${BPURPLE}$PROJECT_ROOT${NC}"
+log_info "Utilities sourced from: ${BBLUE}$PROJECT_ROOT/{{SCRIPT_UTILS_COMMON}}${NC}"
+log_success "Script ${BGREEN}{{SCRIPT_NAME}}${NC} is working!"

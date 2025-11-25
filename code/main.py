@@ -6,17 +6,17 @@ Says hello using anagrams...
 import random
 
 Anagrams = (
-    "Howled roll", 
-    "Doll howler", 
+    "Howled roll,", 
+    "Doll howler!", 
     "Oh, lewd roll...",
     "Who, red? Loll!",
     "Red who? loll!!",
     "Red how loll?",
-    "Whole Droll", 
+    "Whole Droll?", 
     "Hold, we roll!",
     "Hold well, or...",
     "Held. OW! roll...", 
-    "Oh well, lord", 
+    "Oh well, lord!", 
     "Word eh? Loll!"
 )
 
