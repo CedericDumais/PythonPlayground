@@ -10,7 +10,7 @@ DEPS_DIR			?= .sentinel-markers
 SUBMODULE_SENTINEL	= $(DEPS_DIR)/.submodules-initialized
 
 # ---- System dependency list
-SYS_DEPS ?= git $(PYTHON)
+SYS_DEPS ?= git
 
 # If set to 1, 'deps-sys' will fail the build when something is missing
 DEPS_FAIL_ON_MISSING ?= 0

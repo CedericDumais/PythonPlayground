@@ -140,17 +140,38 @@ UPCUT	= printf "$(UP)$(ERASE_LINE)"
 # Utility Macros
 # ==============================
 
+# *!! WIP
+# 
+# Macro: TRY_CMD (**! to change for something better)
+# (description)
+# 
+# Parameters:
+# $(1): Label/Context
+# $(2): Message or current task information.
+# $(3): Command to try and execute.
+# 
+# Behavior:
+# ()
+# 
+# Example Usage:
+# $(call TRY_CMD,$(PY_CTX),Upgrading pip,$(PIP_CMD) install --upgrade pip)
+# 
+define TRY_CMD
+	$(call INFO,$(1),$(2))
+	bash -c '$(3)' || { $(call ERROR,$(1),Command failed: $(2)); exit 1; }
+endef
+
 # Macro: CLEANUP
 # 
 # Parameters:
 # $(1): Caller context (e.g., the project name or task name).
 # $(2): Name of the cleanup task (for logging clarity).
-# $(3): Files/Directories to clean.
+# $(3): Files/Directories/Globs list to clean.
 # $(4): Optional custom success message (when cleaned).
 # $(5): Optional custom warning message (when nothing to clean).
 # 
 # Behavior:
-# Checks if the specified files/directories exist.
+# Checks if the specified files/directories/globs exist.
 # If they exist, logs an info message, removes the files, and logs a success message.
 # If they do not exist, logs a warning message.
 # 
@@ -181,14 +202,57 @@ endef
 # If they do not exist, exits silently.
 # 
 # Example Usage:
-# $(call CLEANUP,$(NAME),object files,$(OBJ_DIR))
-# $(call CLEANUP,$(NAME),test artifacts,testfile.txt received_file.txt,"All test artifacts removed.")
+# $(call SILENT_CLEANUP,$(NAME),object files,$(OBJ_DIR))
+# $(call SILENT_CLEANUP,$(NAME),test artifacts,testfile.txt received_file.txt,"All test artifacts removed.")
 # 
 define SILENT_CLEANUP
 	if [ -n "$(wildcard $(3))" ]; then \
 		$(REMOVE) $(3); \
 		$(call SUCCESS,$(1),$(if $(strip $(4)),$(4),Removed $(2).)); \
 	fi
+endef
+
+# *!! WIP
+# 
+# Macro: FIND_DELETE_FILES
+# Recursive file delete helper
+# 
+# Parameters:
+# $(1): Root (**more info)
+# $(2): Patterns (space-separated, like "*.pyc" "*.pyo")
+# 
+# Behavior:
+# For each file in the second argument (patterns), 
+# Uses 'find' with the '-delete' flag to remove matching files.
+# 
+# Example Usage:
+# 	$(call FIND_DELETE_FILES,)
+#	$(call FIND_DELETE_FILES,$(PY_CLEAN_ROOT),$(PY_CLEAN_FIND_FILES))
+define FIND_DELETE_FILES
+	for pat in $(2); do \
+		find "$(1)" -name "$$pat" -delete; \
+	done
+endef
+
+# *!! WIP
+# 
+# Macro: FIND_DELETE_DIRS
+# short description
+# 
+# Parameters:
+# $(1): Root (**more info)
+# $(2): dirnames (space-separated, like __pycache__)
+# 
+# Behavior:
+# For each directory in the second argument (dirnames), 
+# Uses 'find' and 'rm -rf' to remove matching directories.
+# 
+# Example Usage:
+# 	$(call FIND_DELETE_DIRS,$(PY_CLEAN_ROOT),$(PY_CLEAN_FIND_DIRS))
+define FIND_DELETE_DIRS
+	for d in $(2); do \
+		find "$(1)" -name "$$d" -type d -exec rm -rf {} +; \
+	done
 endef
 
 # **************************************************************************** #

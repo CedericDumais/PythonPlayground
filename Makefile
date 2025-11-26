@@ -1,5 +1,10 @@
 
-
+# TODO:
+# different target for main and game
+# 
+# target to check/add missing python shebangs, and make all .py file in {specified} dirs executable
+# 
+# organise 'prompt' target
 
 # ==============================
 # Project Info
@@ -13,31 +18,42 @@ REPO_LINK	:= https://github.com/CedericDumais/PythonPlayground
 # ==============================
 PYTHON			?= python3
 VENV			?= .venv
-PIP				?= $(VENV)/bin/pip
-PYTHON_IN_VENV	:= $(VENV)/bin/python
 REQUIREMENTS	:= code/games/requirements.txt
 
 # Entry Point
 # MAIN	?= code/main.py
-MAIN	?= code/games/minecraft-mini.py
+MAIN			?= code/games/minecraft-mini.py
+
+# ==============================
+# Executables for the 'prompt' target
+# ==============================
+CODE_DIR	:= code
+
+EXECUTABLES	:= \
+	main.py \
+	games/minecraft-mini.py \
+	turtle/turtle_test.py \
+	utils/check_module.py
+
+EXEC_FILES	:= $(addprefix $(CODE_DIR)/, $(EXECUTABLES))
 
 # ==============================
 # Makefile Imports
 # ==============================
 MK_PATH		:= utils/makefiles
-MK_FILES	:= \
-	utils.mk \
-	dependencies.mk \
-	doc.mk \
-	scripts.mk \
-	tree.mk
+MK_FILES	:= utils.mk \
+			   dependencies.mk \
+			   doc.mk \
+			   scripts.mk \
+			   tree.mk \
+			   python.mk
 
 include $(addprefix $(MK_PATH)/, $(MK_FILES))
 
 # ==============================
 # Default
 # ==============================
-.DEFAULT_GOAL	:= help
+.DEFAULT_GOAL	:= prompt
 
 .DEFAULT:
 	$(info make: *** No rule to make target '$(MAKECMDGOALS)'.  Stop.)
@@ -65,74 +81,81 @@ repo: ## Open the GitHub repository
 # ==============================
 ##@ 🎯 Main Targets
 # ==============================
-.PHONY: all run
+.PHONY: all run prompt
 
-# all: help
-all: venv install test ## Prepares the project (env + deps + optional tests)
+all: py-venv py-install py-test ## Prepares the project (env + deps + tests)
 
-run: venv ## Run the project
-	$(PYTHON_IN_VENV) $(MAIN)
+run: ## Run the project (MAIN=... to override)
+	@$(call PY_REQUIRE_VENV)
+	@$(call TRY_CMD,$(PY_CTX),Running $(MAIN),$(PY) $(MAIN))
 
-venv: ## Create virtualenv if it does not exist
-	test -d $(VENV) || $(PYTHON) -m venv $(VENV)
-
-install: venv ## Install dependencies from requirements.txt if it exists
-	$(PIP) install --upgrade pip
-	if [ -f $(REQUIREMENTS) ]; then \
-		$(PIP) install -r $(REQUIREMENTS); \
-	fi
-
-test: venv ## Run tests (pytest by default for now...)
-	$(PYTHON_IN_VENV) -m pytest tests || echo "No tests or pytest failed"
-
-fast: ## Fast build using parallel jobs
-	@$(MAKE) MAKEFLAGS="$(MAKEFLAGS) -j$(shell nproc)" all
+prompt: ## Prompt to choose an executable from the 'EXEC_FILES' list, chmod +x, then run it
+	@bash -c '\
+		files=($(EXEC_FILES)); \
+		count=$${#files[@]}; \
+		if [ $$count -eq 0 ]; then \
+			$(call ERROR,Run,No files listed in EXEC_FILES.); exit 1; \
+		fi; \
+		choice="$(CHOICE)"; \
+		if [ -z "$$choice" ]; then \
+			echo "Choose exercise to run:"; \
+			for i in $$(seq 1 $$count); do \
+				printf "  [%d] %s\n" $$i "$${files[$$((i-1))]}"; \
+			done; \
+			read -p "Enter your choice (1..$$count): " choice; \
+		fi; \
+		if ! echo "$$choice" | grep -Eq "^[0-9]+$$"; then \
+			$(call ERROR,Run,Invalid choice. Aborting.); exit 1; \
+		fi; \
+		if [ $$choice -lt 1 ] || [ $$choice -gt $$count ]; then \
+			$(call ERROR,Run,Choice out of range. Aborting.); exit 1; \
+		fi; \
+		file="$${files[$$((choice-1))]}"; \
+		if [ ! -f "$$file" ]; then \
+			$(call ERROR,Run,File $$file not found.); exit 1; \
+		fi; \
+		chmod +x "$$file"; \
+		$(call INFO,$(NAME),Running $$file...); \
+		if head -n 1 "$$file" | grep -q "^#!"; then \
+			"./$$file"; \
+		else \
+			if $(call IS_COMMAND_AVAILABLE,python3); then \
+				python3 "$$file"; \
+			elif $(call IS_COMMAND_AVAILABLE,python); then \
+				python "$$file"; \
+			else \
+				$(call ERROR,Run,No python interpreter found.); exit 1; \
+			fi; \
+		fi \
+	'
 
 # ==============================
 ##@ 🧹 Cleanup
 # ==============================
 .PHONY: clean fclean ffclean re
 
-clean: ## Remove compiled Python junk and test caches
-# 	@$(call CLEANUP,$(NAME),object files,$(OBJ_DIR))
-	find . -name "*.py[co]" -delete
-	find . -name "__pycache__" -type d -exec rm -rf {} +
-	rm -rf .pytest_cache .mypy_cache .coverage htmlcov
-# Removes Python "object-like" files:
-# __pycache__, *.pyc, *.pyo
-# Test and tool caches like .pytest_cache, .mypy_cache.
+clean: ## Remove compiled Python junk and tool caches
+	@$(MAKE) py-clean-cache
+	@$(MAKE) py-clean-bytecode
 
 fclean: clean ## clean + remove build artifacts and venv
-# 	@$(call CLEANUP,$(NAME),executable,$(NAME))
-	rm -rf $(VENV)
-	rm -rf build/ dist/ *.egg-info
-# Does clean plus removes:
-# Virtualenv (.venv)
-# Build artifacts: build/, dist/, *.egg-info.
+	@$(MAKE) py-clean-build
+	@$(MAKE) py-clean-venv
 
 ffclean: fclean ## Remove all generated files and folders
 # 	@$(call SILENT_CLEANUP,$(NAME),Build Artifacts,$(DEPS_DIR))
+# 	@$(call SILENT_CLEANUP,$(PY_CTX),extra artifacts,$(PY_EXTRA_ARTIFACTS))
+	@$(call CLEANUP,$(PY_CTX),extra artifacts,$(PY_EXTRA_ARTIFACTS))
 # 	@$(MAKE) deps-clean
 # 	@$(MAKE) script-clean
 # 	@$(MAKE) tree-clean
-	rm -rf logs/ .cache
-	@echo "Full force clean done."
-# Does fclean plus any extra junk we consider generated:
-# logs/, .cache, etc.
-# We can add coverage reports, generated docs, whatever fits our project.
 
 re: fclean all ## Rebuild everything
-
-
-# ==============================
-
-# TODO: target to check/add missing python shebangs, and make all .py file in {specified} dirs executable
-
 
 # ==============================
 ##@ 💾 Backup
 # ==============================
-.PHONY: backup tp-zip
+.PHONY: backup
 
 BACKUP_DIR  := $(ROOT_DIR)_$(USER)_$(TIMESTAMP)
 MOVE_TO     := ~/Desktop
@@ -166,4 +189,3 @@ backup: fclean ## Prompt and create a .zip or .tar.gz backup of the project
 		$(call ERROR,Backup,Required tool '\''$$tool'\'' not found. Please install it.); \
 		exit 1; \
 	fi
-
